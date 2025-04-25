@@ -1,0 +1,10 @@
+npx hardhat node
+npx hardhat run scripts/deploy.js --network localhost
+mvn spring-boot:run
+
+curl -X POST http://localhost:8080/api/tokenize -H "Content-Type: application/json" -d "{\"to\": \"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\", \"tokenURI\": \"ipfs://demo-asset-1\"}"
+curl -X POST http://localhost:8080/api/borrow -H "Content-Type: application/json" -d "{\"tokenId\": 1, \"amount\": 1000000000000000000}"
+curl http://localhost:8080/api/loan-status/1
+
+curl -X POST http://localhost:8080/api/repay -H "Content-Type: application/json" -d "{\"loanId\": 1}"
+

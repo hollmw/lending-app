@@ -1,4 +1,4 @@
-package com.lendingapp.dto;
+package com.defi.dto;
 
 import java.math.BigInteger;
 
