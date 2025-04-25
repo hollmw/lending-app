@@ -10,7 +10,6 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.gas.StaticGasProvider;
 import org.web3j.tx.gas.DefaultGasProvider;
-import org.web3j.tx.exceptions.ContractCallException;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import jakarta.annotation.PostConstruct;
