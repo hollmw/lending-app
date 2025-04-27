@@ -10,7 +10,7 @@ contract AssetToken is ERC721, Ownable {
 
     constructor() ERC721("AssetToken", "AST") Ownable() {}  // Added Ownable constructor
 
-    function mint(address to, string memory tokenURI) public onlyOwner returns (uint256) {
+    function mint(address to, string memory tokenURI) public returns (uint256) {
         _tokenIdCounter++;
         uint256 newTokenId = _tokenIdCounter;
         _mint(to, newTokenId);

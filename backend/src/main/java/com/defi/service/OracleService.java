@@ -2,17 +2,26 @@ package com.defi.service;
 
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 @Service
 public class OracleService {
 
-    public int fetchAssetValuation(String assetName) {
-        // NOW: Simulate with random price
-        Random random = new Random();
-        return random.nextInt(500000) + 10000; // Random between 10k-500k
+    public Map<String, Object> getAssetValuation(String assetName) {
+        Map<String, Object> result = new HashMap<>();
 
-        // LATER: Replace here with real external API call
-        // e.g. OpenAI, Chainlink, or Asset Pricing API
+        // 🧠 Here you can either:
+        // - Replace with real AI API call later (e.g. OpenAI or Chainlink)
+        // - For now simulate a price
+
+        Random random = new Random();
+        int fakePrice = 10000 + random.nextInt(90000); // Random price between 10k and 100k USD
+
+        result.put("asset", assetName);
+        result.put("price", fakePrice);
+
+        return result;
     }
 }

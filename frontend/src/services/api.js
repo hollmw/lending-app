@@ -1,5 +1,7 @@
 import axios from 'axios';
 
-export default axios.create({
-  baseURL: 'http://localhost:8080/api',
+const api = axios.create({
+  baseURL: 'http://localhost:8080/api',  // Backend tiny Oracle proxy
 });
+
+export default api;

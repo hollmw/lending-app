@@ -107,4 +107,11 @@ public class web3service {
         Boolean active = loan.component6(); // isActive
         return active ? "ACTIVE" : "INACTIVE";
     }
+    public AssetToken getAssetToken() {
+        return assetToken;
+    }
+    
+    public LendingPool getLendingPool() {
+        return lendingPool;
+    }
 }
