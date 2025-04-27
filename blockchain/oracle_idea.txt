@@ -31,3 +31,13 @@ Benefits:
 - More realistic simulation of asset valuation flows for tokenization.
 - Easier future upgrade path to Chainlink oracles.
 - Stronger project presentation: explain simulated vs future real-world connection.
+
+
+
+### Using an API-based AI valuation service can simulate the role of real-world valuation companies
+that Aave and Compound rely on for RWA tokenisation. In this project, an AI model is prompted with asset 
+details (such as asset type, condition, location) and returns a simulated valuation. This process mirrors 
+how external firms appraise real-world assets off-chain before they are tokenised and priced via oracle feeds. 
+By integrating this AI service, the project replicates the external valuation step critical to ensuring 
+accurate collateral values in decentralized finance lending systems.
+
