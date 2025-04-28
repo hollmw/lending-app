@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { useWallet } from '../hooks/useWallet';
 import AssetTokenABI from '../abis/AssetToken.json';
 
-const assetTokenAddress = '0x5FbDB2315678afecb367f032d93f642f64180aa3'; // ✅ Make sure correct!
+import { assetTokenAddress, lendingPoolAddress, mockDaiAddress } from '../addresses';
 
 function MyAssets() {
   const { provider, walletAddress, connected } = useWallet();

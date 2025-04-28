@@ -6,9 +6,8 @@ import AssetCard from '../components/AssetCard';
 import LoanCard from '../components/LoanCard';
 import AssetTokenABI from '../abis/AssetToken.json';
 import LendingPoolABI from '../abis/LendingPool.json';
+import { assetTokenAddress, lendingPoolAddress, mockDaiAddress } from '../addresses';
 
-const assetTokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
-const lendingPoolAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
 
 function Dashboard() {
   const { provider, walletAddress, connected } = useWallet();

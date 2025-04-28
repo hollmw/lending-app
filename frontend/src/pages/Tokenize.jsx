@@ -6,7 +6,7 @@ import AssetTokenABI from '../abis/AssetToken.json';
 import Nav from '../components/Nav';
 
 
-const assetTokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3'; // Update
+import { assetTokenAddress, lendingPoolAddress, mockDaiAddress } from '../addresses';
 
 function Tokenize() {
   const { signer, connected } = useWallet();

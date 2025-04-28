@@ -4,8 +4,8 @@ import { useWallet } from '../hooks/useWallet';
 import AssetTokenABI from '../abis/AssetToken.json';
 import LendingPoolABI from '../abis/LendingPool.json';
 
-const assetTokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
-const lendingPoolAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
+import { assetTokenAddress, lendingPoolAddress, mockDaiAddress } from '../addresses';
+
 
 function AssetCard({ asset }) {
   const { signer, connected } = useWallet();

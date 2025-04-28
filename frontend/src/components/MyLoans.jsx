@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { useWallet } from '../hooks/useWallet';
 import LendingPoolABI from '../abis/LendingPool.json';
 
-const lendingPoolAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'; // Update
+import { assetTokenAddress, lendingPoolAddress, mockDaiAddress } from '../addresses';
 
 function MyLoans() {
   const { provider, walletAddress, connected } = useWallet();
