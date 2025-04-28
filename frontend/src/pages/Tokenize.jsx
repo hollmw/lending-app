@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { ethers } from 'ethers';
+import { useWallet } from '../hooks/useWallet';
 import axios from '../services/api';
 import AssetTokenABI from '../abis/AssetToken.json';
+import Nav from '../components/Nav';
 
-const assetTokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3'; // Replace
+
+const assetTokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3'; // Update
 
 function Tokenize() {
+  const { signer, connected } = useWallet();
   const [assetName, setAssetName] = useState('');
   const [valuation, setValuation] = useState(null);
   const [minting, setMinting] = useState(false);
@@ -25,12 +29,13 @@ function Tokenize() {
       alert('Please lookup asset first.');
       return;
     }
+    if (!connected) {
+      alert('Please connect your wallet first.');
+      return;
+    }
     try {
       setMinting(true);
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      const signer = provider.getSigner();
       const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI, signer);
 
       const userWallet = await signer.getAddress();
@@ -50,6 +55,8 @@ function Tokenize() {
   };
 
   return (
+    <>
+    <Nav />
     <div className="flex flex-col items-center space-y-4">
       <input
         type="text"
@@ -79,6 +86,7 @@ function Tokenize() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

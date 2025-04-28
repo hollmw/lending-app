@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
+import { useWallet } from '../hooks/useWallet';
 import LendingPoolABI from '../abis/LendingPool.json';
 
-const lendingPoolAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'; // Replace
+const lendingPoolAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'; // Update
 
 function MyLoans() {
+  const { provider, walletAddress, connected } = useWallet();
   const [loans, setLoans] = useState([]);
 
   const fetchLoans = async () => {
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      const signer = provider.getSigner();
-      const userAddress = await signer.getAddress();
+      if (!connected) {
+        console.error('Wallet not connected');
+        return;
+      }
+
       const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, provider);
 
-      const loanIds = await lendingPoolContract.getLoansByAddress(userAddress);
+      const loanIds = await lendingPoolContract.getLoansByAddress(walletAddress);
 
       const loanData = await Promise.all(loanIds.map(async (loanId) => {
         const loan = await lendingPoolContract.loans(loanId);
@@ -34,27 +37,11 @@ function MyLoans() {
     }
   };
 
-  const repayLoan = async (loanId) => {
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      const signer = provider.getSigner();
-      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
-
-      const tx = await lendingPoolContract.repay(loanId);
-      await tx.wait();
-
-      alert('Loan repaid successfully!');
-      window.location.reload();
-    } catch (error) {
-      console.error('Error repaying loan', error);
-      alert('Error repaying loan: ' + (error.reason || error.message));
-    }
-  };
-
   useEffect(() => {
-    fetchLoans();
-  }, []);
+    if (connected) {
+      fetchLoans();
+    }
+  }, [connected]);
 
   return (
     <div className="p-6">
@@ -70,15 +57,6 @@ function MyLoans() {
               <p><strong>Amount:</strong> {loan.amount} wei</p>
               <p><strong>Interest Due:</strong> {loan.interestDue} wei</p>
               <p><strong>Status:</strong> {loan.isActive ? 'Active' : 'Repaid'}</p>
-
-              {loan.isActive && (
-                <button
-                  onClick={() => repayLoan(loan.loanId)}
-                  className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Repay Loan
-                </button>
-              )}
             </div>
           ))}
         </div>
