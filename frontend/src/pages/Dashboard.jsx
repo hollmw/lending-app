@@ -6,8 +6,7 @@ import AssetCard from '../components/AssetCard';
 import LoanCard from '../components/LoanCard';
 import AssetTokenABI from '../abis/AssetToken.json';
 import LendingPoolABI from '../abis/LendingPool.json';
-import { assetTokenAddress, lendingPoolAddress, mockDaiAddress } from '../addresses';
-
+import { assetTokenAddress, lendingPoolAddress } from '../addresses';
 
 function Dashboard() {
   const { provider, walletAddress, connected } = useWallet();
@@ -16,56 +15,47 @@ function Dashboard() {
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [loadingLoans, setLoadingLoans] = useState(false);
 
+  // === Fetch Owned Assets ===
   const fetchAssets = async () => {
-  if (!connected || !walletAddress) {
-    console.error('Wallet not connected or missing address');
-    return;
-  }
-
-  console.log('[fetchAssets] Connected wallet:', walletAddress);
-
-  try {
-    setLoadingAssets(true);
-
-    const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI, provider);
-
-    const balance = await assetTokenContract.balanceOf(walletAddress);
-    console.log('[fetchAssets] Fetched balance:', balance.toString());
-
-    const assetPromises = [];
-
-    for (let i = 0; i < balance.toNumber(); i++) {
-      assetPromises.push((async () => {
-        const tokenId = await assetTokenContract.tokenOfOwnerByIndex(walletAddress, i);
-        console.log('[fetchAssets] Fetched tokenId:', tokenId.toString());
-        const tokenURI = await assetTokenContract.tokenURI(tokenId);
-        console.log('[fetchAssets] Fetched tokenURI:', tokenURI);
-        return {
-          tokenId: tokenId.toString(),
-          tokenURI: tokenURI,
-        };
-      })());
+    if (!connected || !walletAddress) {
+      console.error('Wallet not connected or missing address');
+      return;
     }
 
-    const assetList = await Promise.all(assetPromises);
-    console.log('[fetchAssets] Final assetList:', assetList);
+    try {
+      setLoadingAssets(true);
+      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI, provider);
+      const balance = await assetTokenContract.balanceOf(walletAddress);
 
-    setAssets(assetList);
+      const assetPromises = [];
+      for (let i = 0; i < balance.toNumber(); i++) {
+        assetPromises.push((async () => {
+          const tokenId = await assetTokenContract.tokenOfOwnerByIndex(walletAddress, i);
+          const tokenURI = await assetTokenContract.tokenURI(tokenId);
+          return {
+            tokenId: tokenId.toString(),
+            tokenURI: tokenURI,
+          };
+        })());
+      }
 
-  } catch (error) {
-    console.error('[fetchAssets] Error:', error);
-    setAssets([]);
-  } finally {
-    setLoadingAssets(false);
-  }
-};
+      const assetList = await Promise.all(assetPromises);
+      setAssets(assetList);
+    } catch (error) {
+      console.error('[fetchAssets] Error:', error);
+      setAssets([]);
+    } finally {
+      setLoadingAssets(false);
+    }
+  };
 
+  // === Fetch Loans ===
   const fetchLoans = async () => {
     if (!connected || !walletAddress) return;
     try {
       setLoadingLoans(true);
       const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI, provider);
-      const loanIds = await lendingPoolContract.getLoansByAddress(walletAddress);
+      const loanIds = await lendingPoolContract.getUserLoans(walletAddress);
 
       const loanPromises = loanIds.map(async (loanId) => {
         const loan = await lendingPoolContract.loans(loanId);
@@ -81,7 +71,7 @@ function Dashboard() {
       const loanList = await Promise.all(loanPromises);
       setLoans(loanList);
     } catch (error) {
-      console.error('Error fetching loans:', error);
+      console.error('[fetchLoans] Error:', error);
       setLoans([]);
     } finally {
       setLoadingLoans(false);
@@ -90,14 +80,10 @@ function Dashboard() {
 
   useEffect(() => {
     if (connected && walletAddress) {
-      console.log('[Dashboard] Fetching assets and loans...');
       fetchAssets();
-      //fetchLoans();
-    } else {
-      console.log('[Dashboard] Wallet not connected yet');
+      fetchLoans();
     }
   }, [connected, walletAddress]);
-  
 
   return (
     <div className="p-8">

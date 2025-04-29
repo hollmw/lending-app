@@ -16,7 +16,7 @@ function MyLoans() {
         return;
       }
 
-      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, provider);
+      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI, provider);
 
       const loanIds = await lendingPoolContract.getLoansByAddress(walletAddress);
 
