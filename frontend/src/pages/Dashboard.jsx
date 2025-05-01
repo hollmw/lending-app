@@ -121,24 +121,41 @@ function Dashboard() {
   }, [connected, account]);
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+    <div className="p-8 bg-blue-50 min-h-screen">
+      <h1 className="text-4xl font-extrabold text-blue-800 mb-8">📊 FTI Lending Dashboard</h1>
 
-      <div className="mb-8">
+      <div className="flex justify-between items-center mb-8">
         <Link
           to="/tokenize"
-          className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600"
+          className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow hover:bg-blue-700"
         >
-          Tokenize New Asset
+          ➕ Tokenize New Asset
         </Link>
+
+        <div className="text-right">
+          <h2 className="text-lg font-semibold text-gray-700">💼 Wallet Balance</h2>
+          <p className="text-xl font-bold text-blue-900">{balance} wei</p>
+          <button
+            onClick={loadBalance}
+            className="mt-2 mr-2 px-4 py-1 bg-blue-400 text-white rounded hover:bg-blue-500"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={addDai}
+            className="mt-2 px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Add 10 DAI (Dev)
+          </button>
+        </div>
       </div>
 
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold mb-4">My Tokenized Assets</h2>
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold text-blue-700 mb-4">🏷️ My Tokenized Assets</h2>
         {loadingAssets ? (
-          <p>Loading your assets...</p>
+          <p className="text-gray-500">Loading your assets...</p>
         ) : assets.length === 0 ? (
-          <p>No tokenized assets found.</p>
+          <p className="text-gray-500">No tokenized assets found.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {assets.map((asset) => (
@@ -146,28 +163,14 @@ function Dashboard() {
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="p-4">
-      <div className="mb-4">
-      <h2 className="text-xl font-bold">💰 Wallet Balance: {balance} wei</h2>
-      <button onClick={loadBalance} className="mt-2 mr-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-          Refresh Balance
-        </button>
-        <button onClick={addDai} className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-          Add 10 DAI (Dev)
-        </button>
-      </div>
-
-      {/* Existing content like asset list, etc. */}
-    </div>
-
-      <div>
-        <h2 className="text-2xl font-bold mb-4">My Loans</h2>
+      <section>
+        <h2 className="text-2xl font-bold text-blue-700 mb-4">💳 My Loans</h2>
         {loadingLoans ? (
-          <p>Loading your loans...</p>
+          <p className="text-gray-500">Loading your loans...</p>
         ) : loans.length === 0 ? (
-          <p>No loans found.</p>
+          <p className="text-gray-500">No loans found.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loans.map((loan) => (
@@ -175,9 +178,8 @@ function Dashboard() {
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
-    
   );
 }
 

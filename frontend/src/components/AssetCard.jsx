@@ -224,63 +224,57 @@ function AssetCard({ asset }) {
   };
 
   return (
-    <div className="border rounded-lg p-4 shadow-md bg-white">
-      <h3 className="text-xl font-bold mb-2">Token ID: {asset.tokenId}</h3>
-      
-      {!connected ? (
-        <button 
-          onClick={connect}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Connect Wallet
-        </button>
-      ) : (
-        <>
-          <div className="mb-4">
-            <button
-              onClick={approveAsset}
-              disabled={isApproving || isApproved}
-              className={`px-4 py-2 rounded text-white ${
-                isApproved ? 'bg-green-500' : 'bg-blue-500 hover:bg-blue-600'
-              } ${isApproving ? 'opacity-50' : ''}`}
-            >
-              {isApproving ? 'Approving...' : 
-               isApproved ? 'Approved ✅' : 'Approve Asset'}
-            </button>
-          </div>
+        <div className="border rounded-xl p-6 shadow-lg bg-fti-light text-fti-blue space-y-4">
+      <h3 className="text-2xl font-semibold">Asset #{asset.tokenId}</h3>
 
-          <div className="space-y-2">
-            <input
-              type="number"
-              placeholder="Amount to borrow"
-              value={borrowAmount}
-              onChange={(e) => setBorrowAmount(e.target.value)}
-              className="w-full p-2 border rounded"
-              min="0"
-              step="0.01"
-            />
-            
-            <button
-              onClick={borrowAgainstAsset}
-              disabled={isBorrowing || !isApproved}
-              className={`w-full px-4 py-2 rounded text-white ${
-                isBorrowing ? 'bg-gray-500' : 'bg-purple-500 hover:bg-purple-600'
-              } ${!isApproved ? 'opacity-50' : ''}`}
-            >
-              {isBorrowing ? 'Processing...' : 'Borrow'}
-            </button>
-          </div>
+      <p className="text-sm text-gray-600">🔗 Token URI: <span className="break-all">{asset.tokenURI}</span></p>
+
+      {/* Assume valuation is embedded in the tokenURI or retrieved elsewhere */}
+      {asset.valuationUSD && (
+        <>
+          <p><strong>Valuation:</strong> ${asset.valuationUSD.toLocaleString()} USD</p>
+          <p><strong>Max Borrowable (60% LTV):</strong> ${(asset.valuationUSD * 0.6).toLocaleString()} DAI</p>
         </>
       )}
 
+      <div className="mt-2">
+        <label className="block text-sm font-medium mb-1">Amount to Borrow</label>
+        <input
+          type="number"
+          placeholder="e.g. 100"
+          value={borrowAmount}
+          onChange={(e) => setBorrowAmount(e.target.value)}
+          className="w-full p-2 border border-blue-200 rounded-md"
+        />
+      </div>
+
+      {/* Buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={approveAsset}
+          disabled={isApproving || isApproved}
+          className={`flex-1 px-4 py-2 rounded text-white ${
+            isApproved ? 'bg-green-500' : 'bg-blue-500 hover:bg-blue-600'
+          } ${isApproving ? 'opacity-50' : ''}`}
+        >
+          {isApproving ? 'Approving...' : isApproved ? 'Approved ✅' : 'Approve'}
+        </button>
+
+        <button
+          onClick={borrowAgainstAsset}
+          disabled={isBorrowing || !isApproved}
+          className={`flex-1 px-4 py-2 rounded text-white ${
+            isBorrowing ? 'bg-gray-400' : 'bg-purple-500 hover:bg-purple-600'
+          } ${!isApproved ? 'opacity-50' : ''}`}
+        >
+          {isBorrowing ? 'Borrowing...' : 'Borrow'}
+        </button>
+      </div>
+
+      {/* Error */}
       {error && (
-        <div className="mt-3 p-2 bg-red-100 text-red-700 rounded text-sm">
-          {error}
-          {error.includes('RPC error') && (
-            <div className="mt-1 text-xs">
-              Try: 1) Resetting MetaMask 2) Increasing gas limit 3) Switching networks
-            </div>
-          )}
+        <div className="bg-red-100 text-red-700 p-2 rounded text-sm">
+          ⚠ {error}
         </div>
       )}
     </div>
