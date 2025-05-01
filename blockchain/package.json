@@ -7,16 +7,21 @@
     "node": "hardhat node",
     "copy-abis": "node scripts/copyAbis.js",
     "deploy": "hardhat run scripts/deploy.js --network localhost && npm run copy-abis"
-
-
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^4.9.3",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "chai": "^4.5.0",
+    "ethers": "^6.13.7",
     "hardhat": "^2.23.0"
   }
 }

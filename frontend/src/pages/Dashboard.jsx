@@ -9,15 +9,14 @@ import LendingPoolABI from '../abis/LendingPool.json';
 import { assetTokenAddress, lendingPoolAddress } from '../addresses';
 
 function Dashboard() {
-  const { provider, walletAddress, connected } = useWallet();
+  const { provider, account, connected } = useWallet(); // ✅ fixed hook usage
   const [assets, setAssets] = useState([]);
   const [loans, setLoans] = useState([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [loadingLoans, setLoadingLoans] = useState(false);
 
-  // === Fetch Owned Assets ===
   const fetchAssets = async () => {
-    if (!connected || !walletAddress) {
+    if (!connected || !account) {
       console.error('Wallet not connected or missing address');
       return;
     }
@@ -25,12 +24,12 @@ function Dashboard() {
     try {
       setLoadingAssets(true);
       const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, provider);
-      const balance = await assetTokenContract.balanceOf(walletAddress);
+      const balance = await assetTokenContract.balanceOf(account);
 
       const assetPromises = [];
       for (let i = 0; i < balance.toNumber(); i++) {
         assetPromises.push((async () => {
-          const tokenId = await assetTokenContract.tokenOfOwnerByIndex(walletAddress, i);
+          const tokenId = await assetTokenContract.tokenOfOwnerByIndex(account, i);
           const tokenURI = await assetTokenContract.tokenURI(tokenId);
           return {
             tokenId: tokenId.toString(),
@@ -49,13 +48,13 @@ function Dashboard() {
     }
   };
 
-  // === Fetch Loans ===
   const fetchLoans = async () => {
-    if (!connected || !walletAddress) return;
+    if (!connected || !account) return;
+
     try {
       setLoadingLoans(true);
       const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, provider);
-      const loanIds = await lendingPoolContract.getUserLoans(walletAddress);
+      const loanIds = await lendingPoolContract.getUserLoans(account);
 
       const loanPromises = loanIds.map(async (loanId) => {
         const loan = await lendingPoolContract.loans(loanId);
@@ -79,11 +78,11 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    if (connected && walletAddress) {
+    if (connected && account) {
       fetchAssets();
       fetchLoans();
     }
-  }, [connected, walletAddress]);
+  }, [connected, account]);
 
   return (
     <div className="p-8">
