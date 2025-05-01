@@ -13,22 +13,36 @@ function AssetCard({ asset }) {
   const [isApproved, setIsApproved] = useState(false);
 
   const approveAsset = async () => {
-    if (!connected) {
-      alert('Please connect your wallet first.');
-      return;
-    }
+    if (!connected) return alert('Please connect your wallet first.');
+  
     try {
       setApproving(true);
       const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
-
+  
+      // Check current approval first
+      const currentApproval = await assetTokenContract.getApproved(asset.tokenId);
+      if (currentApproval.toLowerCase() === lendingPoolAddress.toLowerCase()) {
+        setIsApproved(true);
+        return alert('Asset already approved');
+      }
+  
       const tx = await assetTokenContract.approve(lendingPoolAddress, asset.tokenId);
-      await tx.wait(); // ✅ Wait for real blockchain confirmation
-
-      alert('Approval successful!');
-      setIsApproved(true); // ✅ Mark approved
+      console.log("Approval tx sent:", tx.hash);
+      
+      const receipt = await tx.wait();
+      console.log("Approval tx mined:", receipt);
+      
+      // Verify approval was successful
+      const newApproval = await assetTokenContract.getApproved(asset.tokenId);
+      setIsApproved(newApproval.toLowerCase() === lendingPoolAddress.toLowerCase());
+      
+      alert(newApproval === lendingPoolAddress 
+        ? 'Approval successful!' 
+        : 'Approval failed');
+        
     } catch (error) {
-      console.error('Error approving asset', error);
-      alert('Error approving asset: ' + (error.reason || error.message));
+      console.error('Approval error:', error);
+      alert(`Approval failed: ${error.reason || error.message}`);
     } finally {
       setApproving(false);
     }
@@ -43,33 +57,59 @@ function AssetCard({ asset }) {
       alert('Please approve the asset first.');
       return;
     }
+  
     try {
       setBorrowing(true);
-  
+      
+      // 1. Verify approval status again
       const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
       const approvedAddress = await assetTokenContract.getApproved(asset.tokenId);
-      console.log("✅ Token approved to:", approvedAddress);
-      console.log('Approved Address for tokenId', asset.tokenId, ':', approvedAddress);
+      
+      console.log("Approval check:", {
+        approvedAddress,
+        lendingPoolAddress,
+        match: approvedAddress.toLowerCase() === lendingPoolAddress.toLowerCase()
+      });
   
       if (approvedAddress.toLowerCase() !== lendingPoolAddress.toLowerCase()) {
         alert('Asset not approved for LendingPool. Please approve first.');
         setIsApproved(false);
-        setBorrowing(false);
         return;
       }
   
-      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
-      const borrowAmount = "1";
+      // 2. Create contract instance with more details
+      const lendingPoolContract = new ethers.Contract(
+        lendingPoolAddress,
+        LendingPoolABI.abi,
+        signer
+      );
+  
+      // 3. Convert amount properly
       const amountInWei = ethers.utils.parseUnits(borrowAmount, 18);
   
-      const tx = await lendingPoolContract.borrow(asset.tokenId, amountInWei);
-      await tx.wait();
+      // 4. Try with manual gas limit
+      const tx = await lendingPoolContract.borrow(asset.tokenId, amountInWei, {
+        gasLimit: 500000 // Increased gas limit
+      });
+  
+      console.log("Transaction sent:", tx.hash);
+      
+      const receipt = await tx.wait();
+      console.log("Transaction mined:", receipt);
   
       alert('Borrowed successfully!');
       window.location.reload();
+      
     } catch (error) {
-      console.error('Error borrowing:', error);
-      alert('Error borrowing: ' + (error.reason || error.message));
+      console.error('Detailed borrowing error:', {
+        error,
+        message: error.message,
+        reason: error.reason,
+        data: error.data,
+        stack: error.stack
+      });
+      
+      alert(`Borrowing failed: ${error.reason || error.message}`);
     } finally {
       setBorrowing(false);
     }
