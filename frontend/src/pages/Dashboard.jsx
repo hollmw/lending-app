@@ -6,14 +6,49 @@ import AssetCard from '../components/AssetCard';
 import LoanCard from '../components/LoanCard';
 import AssetTokenABI from '../abis/AssetToken.json';
 import LendingPoolABI from '../abis/LendingPool.json';
-import { assetTokenAddress, lendingPoolAddress } from '../addresses';
+import MockDAIABI from '../abis/MockDAI.json';
+
+import { assetTokenAddress, lendingPoolAddress , mockDaiAddress } from '../addresses';
 
 function Dashboard() {
-  const { provider, account, connected } = useWallet(); // ✅ fixed hook usage
+  const { provider, signer, account, connected } = useWallet();
   const [assets, setAssets] = useState([]);
   const [loans, setLoans] = useState([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [loadingLoans, setLoadingLoans] = useState(false);
+  const [balance, setBalance] = useState("0");
+
+  const loadBalance = async () => {
+    if (!connected || !account || !(signer || provider)) return;
+  
+    try {
+      const daiContract = new ethers.Contract(
+        mockDaiAddress,
+        MockDAIABI.abi,
+        signer || provider // fallback for read-only if signer isn't present
+      );
+  
+      const rawBalance = await daiContract.balanceOf(account);
+      setBalance(rawBalance.toString()); // or formatEther(rawBalance)
+    } catch (err) {
+      console.error("🔴 Error loading DAI balance:", err);
+      setBalance("0");
+    }
+  };
+  
+
+  // ✅ Add 10 DAI
+  const addDai = async () => {
+    if (!connected || !signer) return;
+    try {
+      const dai = new ethers.Contract(mockDaiAddress, MockDAIABI.abi, signer);
+      const tx = await dai.mint(account, ethers.utils.parseEther("10")); // use .mint not transfer
+      await tx.wait();
+      await loadBalance();
+    } catch (err) {
+      console.error("DAI mint error:", err);
+    }
+  };
 
   const fetchAssets = async () => {
     if (!connected || !account) {
@@ -81,6 +116,7 @@ function Dashboard() {
     if (connected && account) {
       fetchAssets();
       fetchLoans();
+      loadBalance();
     }
   }, [connected, account]);
 
@@ -112,6 +148,20 @@ function Dashboard() {
         )}
       </div>
 
+      <div className="p-4">
+      <div className="mb-4">
+      <h2 className="text-xl font-bold">💰 Wallet Balance: {balance} wei</h2>
+      <button onClick={loadBalance} className="mt-2 mr-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+          Refresh Balance
+        </button>
+        <button onClick={addDai} className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+          Add 10 DAI (Dev)
+        </button>
+      </div>
+
+      {/* Existing content like asset list, etc. */}
+    </div>
+
       <div>
         <h2 className="text-2xl font-bold mb-4">My Loans</h2>
         {loadingLoans ? (
@@ -127,6 +177,7 @@ function Dashboard() {
         )}
       </div>
     </div>
+    
   );
 }
 

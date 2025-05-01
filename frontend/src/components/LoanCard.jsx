@@ -1,32 +1,59 @@
 import { useWallet } from '../hooks/useWallet';
 import { ethers } from 'ethers';
 import LendingPoolABI from '../abis/LendingPool.json';
-import { lendingPoolAddress } from '../addresses';
+import MockDAIABI from '../abis/MockDAI.json';
+import { lendingPoolAddress, mockDaiAddress } from '../addresses';
 
 function LoanCard({ loan }) {
   const { signer, connected } = useWallet();
 
   const repayLoan = async (loanId) => {
-    if (!connected) return alert('Connect wallet first!');
+    if (!connected || !signer) return alert('Connect wallet first!');
+
     try {
-      const contract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
-      const tx = await contract.repay(loanId);
+      const dai = new ethers.Contract(mockDaiAddress, MockDAIABI.abi, signer);
+      const lendingPool = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
+
+      // Load full loan info (in case it's stale)
+      const onChainLoan = await lendingPool.loans(loanId);
+      const totalDue = onChainLoan.amount.add(onChainLoan.interestDue);
+
+      // Check allowance
+      const userAddress = await signer.getAddress();
+      const allowance = await dai.allowance(userAddress, lendingPoolAddress);
+
+      if (allowance.lt(totalDue)) {
+        const approvalTx = await dai.approve(lendingPoolAddress, totalDue);
+        await approvalTx.wait();
+      }
+
+      // Call repay
+      const tx = await lendingPool.repay(loanId);
       await tx.wait();
-      alert('Loan repaid!');
+
+      alert('✅ Loan repaid successfully!');
       window.location.reload();
     } catch (err) {
-      console.error(err);
+      console.error('Repay error:', err);
       alert('Repay failed: ' + (err.reason || err.message));
     }
+  };
+
+  const formatWei = (value) => {
+    return Number(ethers.utils.formatEther(value)).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6,
+    });
   };
 
   return (
     <div className="border p-4 bg-white rounded shadow">
       <p><strong>Loan ID:</strong> {loan.loanId}</p>
       <p><strong>Token ID:</strong> {loan.tokenId}</p>
-      <p><strong>Amount:</strong> {loan.amount} wei</p>
-      <p><strong>Interest Due:</strong> {loan.interestDue} wei</p>
+      <p><strong>Amount:</strong> {formatWei(loan.amount)} DAI</p>
+      <p><strong>Interest Due:</strong> {formatWei(loan.interestDue)} DAI</p>
       <p><strong>Status:</strong> {loan.isActive ? 'Active' : 'Repaid'}</p>
+
       {loan.isActive && (
         <button
           onClick={() => repayLoan(loan.loanId)}
