@@ -9,7 +9,7 @@ function LoanCard({ loan }) {
   const repayLoan = async (loanId) => {
     if (!connected) return alert('Connect wallet first!');
     try {
-      const contract = new ethers.Contract(lendingPoolAddress, LendingPoolABI, signer);
+      const contract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
       const tx = await contract.repay(loanId);
       await tx.wait();
       alert('Loan repaid!');

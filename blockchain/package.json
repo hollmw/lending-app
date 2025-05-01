@@ -5,7 +5,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "node": "hardhat node",
-    "deploy": "hardhat run scripts/deploy.js --network localhost"
+    "copy-abis": "node scripts/copyAbis.js",
+    "deploy": "hardhat run scripts/deploy.js --network localhost && npm run copy-abis"
+
+
   },
   "keywords": [],
   "author": "",

@@ -19,7 +19,7 @@ function MyAssets() {
       try {
         setLoading(true);
 
-        const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI, provider);
+        const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, provider);
 
         const balance = await assetTokenContract.balanceOf(walletAddress);
         console.log('Fetched balance:', balance.toString());

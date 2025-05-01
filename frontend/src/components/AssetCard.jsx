@@ -19,7 +19,7 @@ function AssetCard({ asset }) {
     }
     try {
       setApproving(true);
-      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI, signer);
+      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
 
       const tx = await assetTokenContract.approve(lendingPoolAddress, asset.tokenId);
       await tx.wait(); // ✅ Wait for real blockchain confirmation
@@ -46,7 +46,7 @@ function AssetCard({ asset }) {
     try {
       setBorrowing(true);
   
-      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI, signer);
+      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
       const approvedAddress = await assetTokenContract.getApproved(asset.tokenId);
       console.log("✅ Token approved to:", approvedAddress);
       console.log('Approved Address for tokenId', asset.tokenId, ':', approvedAddress);
@@ -58,7 +58,7 @@ function AssetCard({ asset }) {
         return;
       }
   
-      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI, signer);
+      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
       const borrowAmount = "1";
       const amountInWei = ethers.utils.parseUnits(borrowAmount, 18);
   

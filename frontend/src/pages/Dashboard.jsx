@@ -24,7 +24,7 @@ function Dashboard() {
 
     try {
       setLoadingAssets(true);
-      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI, provider);
+      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, provider);
       const balance = await assetTokenContract.balanceOf(walletAddress);
 
       const assetPromises = [];
@@ -54,7 +54,7 @@ function Dashboard() {
     if (!connected || !walletAddress) return;
     try {
       setLoadingLoans(true);
-      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI, provider);
+      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, provider);
       const loanIds = await lendingPoolContract.getUserLoans(walletAddress);
 
       const loanPromises = loanIds.map(async (loanId) => {

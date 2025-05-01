@@ -36,7 +36,7 @@ function Tokenize() {
     try {
       setMinting(true);
 
-      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI, signer);
+      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
 
       const userWallet = await signer.getAddress();
       const tokenURI = `Asset: ${assetName}, Valuation: ${valuation} USD`;
