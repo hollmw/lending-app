@@ -25,7 +25,7 @@ contract LendingPool is ReentrancyGuard {
     mapping(uint256 => uint256) public tokenToLoanId;
     mapping(address => uint256[]) public userLoans;
 
-    uint256 public loanIdCounter;
+    uint256 public loanIdCounter = 1;
 
     event LoanCreated(uint256 loanId, uint256 tokenId, uint256 amount);
     event LoanRepaid(uint256 loanId, uint256 amount);
@@ -45,6 +45,7 @@ contract LendingPool is ReentrancyGuard {
     }
 
     function borrow(uint256 tokenId, uint256 amount) external nonReentrant {
+        
         // Debug information
         address approved = assetToken.getApproved(tokenId);
         bool isApprovedAll = assetToken.isApprovedForAll(msg.sender, address(this));
@@ -69,6 +70,7 @@ contract LendingPool is ReentrancyGuard {
             owner == msg.sender,
             "LendingPool: Caller is not NFT owner"
         );
+        require(tokenToLoanId[tokenId] == 0, "NFT already COllteralised");
         require(
             existingLoanId == 0,
             "LendingPool: NFT already collateralized"

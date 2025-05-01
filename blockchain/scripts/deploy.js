@@ -21,7 +21,8 @@ async function main() {
   console.log('MockDAI deployed to:', mockDaiAddress);
 
   const LendingPool = await ethers.getContractFactory('LendingPool');
-  const lendingPool = await LendingPool.deploy(mockDaiAddress, assetTokenAddress);
+  
+  const lendingPool = await LendingPool.deploy(assetTokenAddress, mockDaiAddress);
   await lendingPool.waitForDeployment();
   const lendingPoolAddress = await lendingPool.getAddress();
   console.log('LendingPool deployed to:', lendingPoolAddress);

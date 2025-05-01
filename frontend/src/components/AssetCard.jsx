@@ -103,6 +103,10 @@ function AssetCard({ asset }) {
       );
   
       const tokenId = asset.tokenId;
+
+      lendingPoolContract.on("BorrowDebug", (caller, tokenId, approved, isApprovedAll, owner, existingLoanId) => {
+        console.log(`🔍 BorrowDebug - caller: ${caller}, tokenId: ${tokenId}, owner: ${owner}, approved: ${approved}, approvedForAll: ${isApprovedAll}, existingLoanId: ${existingLoanId}`);
+      });
   
       // 1. Check ownership
       const owner = await assetTokenContract.ownerOf(tokenId);
@@ -110,12 +114,15 @@ function AssetCard({ asset }) {
         throw new Error('You no longer own this NFT');
       }
   
+      console.log('tokenId', tokenId);
+      const debugLoanId = await lendingPoolContract.tokenToLoanId(tokenId);
+      console.log('Existing loan ID from contract:', debugLoanId.toString());
       // 2. Check existing loan
       const existingLoanId = await lendingPoolContract.tokenToLoanId(tokenId);
-      if (existingLoanId !== 0) {
-        throw new Error('NFT is already collateralized');
+      if (!existingLoanId.eq(0)) {
+        throw new Error('NFT is already collateralized blyat');
       }
-  
+      
       // 3. Check approval with retry
       let stillApproved = false;
       const [approvedAddress, isApprovedForAll] = await Promise.all([
@@ -143,8 +150,27 @@ function AssetCard({ asset }) {
         }
       }
   
+      
       // 4. Estimate gas with buffer
-      const amountWei = ethers.utils.parseEther(borrowAmount);
+      let amountWei;
+      try {
+        amountWei = ethers.utils.parseEther(borrowAmount);
+        if (amountWei.lte(0)) throw new Error("Invalid amount");
+      } catch (e) {
+        setError("Enter a valid number greater than 0");
+        return;
+      }
+      console.log('Borrow attempt tokenId:', tokenId);
+      console.log('Borrow attempt amountWei:', amountWei.toString());
+      console.log('Contract address:', lendingPoolContract.address);
+      console.log('borrow() ABI entry:', LendingPoolABI.abi.find(f => f.name === 'borrow'));
+      if (!ethers.BigNumber.isBigNumber(amountWei)) {
+        throw new Error('Invalid borrow amount: not a BigNumber');
+      }
+      console.log("tokenId:", tokenId);
+      console.log("borrowAmount:", borrowAmount);
+      console.log("amountWei:", amountWei);
+
       const gasEstimate = await lendingPoolContract.estimateGas.borrow(
         tokenId,
         amountWei
