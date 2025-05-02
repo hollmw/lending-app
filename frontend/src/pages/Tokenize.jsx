@@ -4,9 +4,7 @@ import { useWallet } from '../hooks/useWallet';
 import axios from '../services/api';
 import AssetTokenABI from '../abis/AssetToken.json';
 import Nav from '../components/Nav';
-
-
-import { assetTokenAddress, lendingPoolAddress, mockDaiAddress } from '../addresses';
+import { assetTokenAddress } from '../addresses';
 
 function Tokenize() {
   const { signer, connected } = useWallet();
@@ -16,14 +14,18 @@ function Tokenize() {
 
   const lookupAsset = async () => {
     try {
-      const res = await axios.get(`/oracle-lookup?assetName=${assetName}`);
-      setValuation(res.data.price);
+      const tokenId = assetName.trim(); // assetName used as tokenId (e.g., "1")
+      const res = await axios.get(`/api/valuation/${tokenId}`);
+  
+      setValuation({
+        usd: parseFloat(ethers.utils.formatEther(res.data.valuationWei)),
+        signature: res.data.signature
+      });
     } catch (error) {
       console.error('Oracle lookup error', error);
       alert('Error fetching asset valuation.');
     }
   };
-
   const mintAsset = async () => {
     if (!valuation) {
       alert('Please lookup asset first.');
@@ -39,7 +41,7 @@ function Tokenize() {
       const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
 
       const userWallet = await signer.getAddress();
-      const tokenURI = `Asset: ${assetName}, Valuation: ${valuation} USD`;
+      const tokenURI = `Asset: ${assetName}, Valuation: $${valuation.usd}`;
 
       const tx = await assetTokenContract.mint(userWallet, tokenURI);
       await tx.wait();
@@ -56,36 +58,38 @@ function Tokenize() {
 
   return (
     <>
-    <Nav />
-    <div className="flex flex-col items-center space-y-4">
-      <input
-        type="text"
-        placeholder="Enter asset name (e.g., Tesla)"
-        value={assetName}
-        onChange={(e) => setAssetName(e.target.value)}
-        className="border p-2 rounded"
-      />
+      <Nav />
+      <div className="flex flex-col items-center space-y-4 p-8 bg-fti-light min-h-screen">
+        <h2 className="text-2xl font-bold text-fti-blue">Tokenize Asset</h2>
 
-      <button
-        onClick={lookupAsset}
-        className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-      >
-        Lookup Valuation
-      </button>
+        <input
+          type="text"
+          placeholder="Enter asset tokenId (e.g., 1)"
+          value={assetName}
+          onChange={(e) => setAssetName(e.target.value)}
+          className="border p-2 rounded w-64"
+        />
 
-      {valuation && (
-        <div>
-          <p>Asset Valuation: ${valuation} USD</p>
-          <button
-            onClick={mintAsset}
-            disabled={minting}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-2 disabled:bg-gray-400"
-          >
-            {minting ? 'Minting...' : 'Tokenize (Mint) Asset'}
-          </button>
-        </div>
-      )}
-    </div>
+        <button
+          onClick={lookupAsset}
+          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+        >
+          Lookup Valuation
+        </button>
+
+        {valuation && (
+          <div className="text-center">
+            <p>Asset Valuation: <strong>${valuation.usd}</strong> USD</p>
+            <button
+              onClick={mintAsset}
+              disabled={minting}
+              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+            >
+              {minting ? 'Minting...' : 'Tokenize (Mint) Asset'}
+            </button>
+          </div>
+        )}
+      </div>
     </>
   );
 }

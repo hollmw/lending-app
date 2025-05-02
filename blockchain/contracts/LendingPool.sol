@@ -4,10 +4,14 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
 
 contract LendingPool is ReentrancyGuard {
     IERC721 public immutable assetToken;
     IERC20 public immutable stablecoin;
+    address public oracleSigner;
+
 
     uint256 public interestRate = 500; // 5% interest (500 basis points)
     uint256 public constant MAX_LOAN_AMOUNT = 1000 * 10 ** 18;
@@ -43,8 +47,59 @@ contract LendingPool is ReentrancyGuard {
         assetToken = IERC721(_assetToken);
         stablecoin = IERC20(_stablecoin);
     }
+    function setOracleSigner(address _signer) external {
+        oracleSigner = _signer;
+    }
+    address public trustedOracle;
+    mapping(uint256 => bool) public usedMessages;
 
-    function borrow(uint256 tokenId, uint256 amount) external nonReentrant {
+    function setOracle(address _oracle) external {
+        trustedOracle = _oracle;
+    }
+
+    function borrowWithSignature(
+        uint256 tokenId,
+        uint256 amount,
+        uint256 valuation,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant {
+        require(block.timestamp <= deadline, "Signature expired");
+
+        bytes32 messageHash = keccak256(abi.encodePacked(tokenId, valuation, deadline));
+        bytes32 ethSignedMessageHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
+        );
+
+        address signer = ecrecover(ethSignedMessageHash, v, r, s);
+        require(signer == trustedOracle, "Invalid oracle signature");
+        require(!usedMessages[uint256(ethSignedMessageHash)], "Message already used");
+        usedMessages[uint256(ethSignedMessageHash)] = true;
+
+        // Max borrow = 60% of valuation
+        require(amount <= (valuation * 60) / 100, "Exceeds max borrowable");
+
+        // Continue with NFT transfer and stablecoin payout...
+        // Same logic as existing `borrow()`, reuse shared logic if possible
+    }
+
+
+    function borrow(
+        uint256 tokenId,
+        uint256 amount,
+        uint256 valuation,
+        bytes memory signature
+    ) external nonReentrant {
+        require(
+            verifyValuationSignature(tokenId, valuation, signature),
+            "Invalid oracle signature"
+        );
+
+    uint256 maxBorrow = (valuation * 50) / 100; // 50% LTV
+    require(amount <= maxBorrow, "Amount exceeds max borrow");
+
         
         // Debug information
         address approved = assetToken.getApproved(tokenId);
@@ -147,4 +202,18 @@ contract LendingPool is ReentrancyGuard {
     function updateInterestRate(uint256 newRate) external {
         interestRate = newRate;
     }
+
+
+    //oracle stuff
+    function verifyValuationSignature(
+        uint256 tokenId,
+        uint256 valuation,
+        bytes memory signature
+    ) 
+    public view returns (bool) {
+        bytes32 messageHash = keccak256(abi.encodePacked(tokenId, valuation));
+        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(messageHash);
+        return ECDSA.recover(ethSignedMessageHash, signature) == oracleSigner;
+    }
+
 }

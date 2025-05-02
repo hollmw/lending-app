@@ -3,17 +3,16 @@ import { ethers } from 'ethers';
 import { useWallet } from '../hooks/useWallet';
 import AssetTokenABI from '../abis/AssetToken.json';
 import LendingPoolABI from '../abis/LendingPool.json';
-import { assetTokenAddress, lendingPoolAddress } from '../addresses';
+import { assetTokenAddress, lendingPoolAddress , oracleSignerAddress } from '../addresses';
 
 function AssetCard({ asset }) {
-  const { signer, account, connected, chainId, connect } = useWallet();
+  const { signer, account, connected, connect } = useWallet();
   const [borrowAmount, setBorrowAmount] = useState('');
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [error, setError] = useState(null);
 
-  // Check approval status
   useEffect(() => {
     if (!connected || !account || !signer) return;
 
@@ -24,13 +23,13 @@ function AssetCard({ asset }) {
           AssetTokenABI.abi,
           signer
         );
-
         const [approvedAddress, isApprovedForAll] = await Promise.all([
           assetTokenContract.getApproved(asset.tokenId),
-          assetTokenContract.isApprovedForAll(account, lendingPoolAddress)
+          assetTokenContract.isApprovedForAll(account, lendingPoolAddress),
         ]);
-
-        setIsApproved(approvedAddress === lendingPoolAddress || isApprovedForAll);
+        setIsApproved(
+          approvedAddress === lendingPoolAddress || isApprovedForAll
+        );
       } catch (err) {
         console.error('Approval check error:', err);
         setIsApproved(false);
@@ -56,19 +55,11 @@ function AssetCard({ asset }) {
         signer
       );
 
-      const tx = await assetTokenContract.approve(lendingPoolAddress, asset.tokenId, {
-        gasLimit: 200000 // Sufficient for approval
-      });
-
+      const tx = await assetTokenContract.approve(lendingPoolAddress, asset.tokenId);
       await tx.wait();
       setIsApproved(true);
     } catch (err) {
-      console.error('Approval failed:', {
-        error: err,
-        message: err.message,
-        reason: err.reason,
-        data: err.data
-      });
+      console.error('Approval failed:', err);
       setError(`Approval failed: ${err.reason || err.message}`);
     } finally {
       setIsApproving(false);
@@ -80,156 +71,84 @@ function AssetCard({ asset }) {
       await connect();
       return;
     }
-  
+
     if (!borrowAmount || isNaN(borrowAmount)) {
       setError('Please enter a valid amount');
       return;
     }
-  
+
     try {
       setIsBorrowing(true);
       setError(null);
-  
-      const assetTokenContract = new ethers.Contract(
-        assetTokenAddress,
-        AssetTokenABI.abi,
-        signer
-      );
-  
-      const lendingPoolContract = new ethers.Contract(
-        lendingPoolAddress,
-        LendingPoolABI.abi,
-        signer
-      );
-  
+
+      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
+      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
       const tokenId = asset.tokenId;
 
-      lendingPoolContract.on("BorrowDebug", (caller, tokenId, approved, isApprovedAll, owner, existingLoanId) => {
-        console.log(`🔍 BorrowDebug - caller: ${caller}, tokenId: ${tokenId}, owner: ${owner}, approved: ${approved}, approvedForAll: ${isApprovedAll}, existingLoanId: ${existingLoanId}`);
-      });
-  
-      // 1. Check ownership
       const owner = await assetTokenContract.ownerOf(tokenId);
       if (owner.toLowerCase() !== account.toLowerCase()) {
         throw new Error('You no longer own this NFT');
       }
-  
-      console.log('tokenId', tokenId);
-      const debugLoanId = await lendingPoolContract.tokenToLoanId(tokenId);
-      console.log('Existing loan ID from contract:', debugLoanId.toString());
-      // 2. Check existing loan
+
       const existingLoanId = await lendingPoolContract.tokenToLoanId(tokenId);
       if (!existingLoanId.eq(0)) {
-        throw new Error('NFT is already collateralized blyat');
+        throw new Error('NFT is already collateralized');
       }
-      
-      // 3. Check approval with retry
-      let stillApproved = false;
+
       const [approvedAddress, isApprovedForAll] = await Promise.all([
         assetTokenContract.getApproved(tokenId),
-        assetTokenContract.isApprovedForAll(account, lendingPoolAddress)
+        assetTokenContract.isApprovedForAll(account, lendingPoolAddress),
       ]);
-      
-      stillApproved = approvedAddress === lendingPoolAddress || isApprovedForAll;
-  
+      const stillApproved = approvedAddress === lendingPoolAddress || isApprovedForAll;
       if (!stillApproved) {
-        const approveTx = await assetTokenContract.approve(lendingPoolAddress, tokenId, {
-          gasLimit: 200000
-        });
+        const approveTx = await assetTokenContract.approve(lendingPoolAddress, tokenId);
         await approveTx.wait();
-        
-        // Re-check approval after update
-        const [newApproved, newApprovedAll] = await Promise.all([
-          assetTokenContract.getApproved(tokenId),
-          assetTokenContract.isApprovedForAll(account, lendingPoolAddress)
-        ]);
-        stillApproved = newApproved === lendingPoolAddress || newApprovedAll;
-        
-        if (!stillApproved) {
-          throw new Error('Approval failed. Try again.');
-        }
       }
-  
-      
-      // 4. Estimate gas with buffer
-      let amountWei;
-      try {
-        amountWei = ethers.utils.parseEther(borrowAmount);
-        if (amountWei.lte(0)) throw new Error("Invalid amount");
-      } catch (e) {
-        setError("Enter a valid number greater than 0");
-        return;
-      }
-      console.log('Borrow attempt tokenId:', tokenId);
-      console.log('Borrow attempt amountWei:', amountWei.toString());
-      console.log('Contract address:', lendingPoolContract.address);
-      console.log('borrow() ABI entry:', LendingPoolABI.abi.find(f => f.name === 'borrow'));
-      if (!ethers.BigNumber.isBigNumber(amountWei)) {
-        throw new Error('Invalid borrow amount: not a BigNumber');
-      }
-      console.log("tokenId:", tokenId);
-      console.log("borrowAmount:", borrowAmount);
-      console.log("amountWei:", amountWei);
 
+      const amountWei = ethers.utils.parseEther(borrowAmount);
+      if (amountWei.lte(0)) throw new Error('Invalid borrow amount');
+
+      const valuationRes = await fetch(`http://localhost:8080/api/valuation/${tokenId}`);
+      const { valuationWei, signature, oracleSignerAddress } = await valuationRes.json();
+
+
+      const signatureBytes = ethers.utils.arrayify(signature);
       const gasEstimate = await lendingPoolContract.estimateGas.borrow(
         tokenId,
-        amountWei
+        amountWei,
+        valuationWei,
+        signatureBytes
       );
-  
-      // 5. Execute borrow with dynamic gas
-      const tx = await lendingPoolContract.borrow(tokenId, amountWei, {
-        gasLimit: gasEstimate.mul(150).div(100) // 50% buffer
-      });
-  
-      const receipt = await tx.wait();
-      console.log('Borrow receipt:', receipt);
-      
-      if (receipt.status === 0) {
-        throw new Error('Transaction reverted');
-      }
-  
+
+      const tx = await lendingPoolContract.borrow(
+        tokenId,
+        amountWei,
+        valuationWei,
+        signatureBytes,
+        {
+          gasLimit: gasEstimate.mul(120).div(100),
+        }
+      );
+      await tx.wait();
+
       alert('Borrow successful!');
       window.location.reload();
-  
     } catch (err) {
-      console.error('BORROW ERROR:', {
-        rawError: err,
-        message: err.message,
-        reason: err.reason,
-        data: err.data
-      });
-  
-      // Handle specific error cases
-      let errorMessage = 'Borrow failed';
-      
-      if (err.code === -32603) {
-        errorMessage = 'Transaction failed: Check your gas limit and try again';
-      } else if (err.data) {
-        try {
-          const decodedError = lendingPoolContract.interface.parseError(err.data);
-          errorMessage += `: ${decodedError.name}`;
-        } catch (e) {
-          errorMessage += ' (Contract reverted)';
-        }
-      } else if (err.reason) {
-        errorMessage += `: ${err.reason}`;
-      } else {
-        errorMessage += `: ${err.message}`;
-      }
-  
-      setError(errorMessage);
+      console.error('BORROW ERROR:', err);
+      setError(err.reason || err.message || 'Borrow failed');
     } finally {
       setIsBorrowing(false);
     }
   };
 
   return (
-        <div className="border rounded-xl p-6 shadow-lg bg-fti-light text-fti-blue space-y-4">
+    <div className="border rounded-xl p-6 shadow-lg bg-fti-light text-fti-blue space-y-4">
       <h3 className="text-2xl font-semibold">Asset #{asset.tokenId}</h3>
 
-      <p className="text-sm text-gray-600">🔗 Token URI: <span className="break-all">{asset.tokenURI}</span></p>
+      <p className="text-sm text-gray-600">
+        🔗 Token URI: <span className="break-all">{asset.tokenURI}</span>
+      </p>
 
-      {/* Assume valuation is embedded in the tokenURI or retrieved elsewhere */}
       {asset.valuationUSD && (
         <>
           <p><strong>Valuation:</strong> ${asset.valuationUSD.toLocaleString()} USD</p>
@@ -241,14 +160,13 @@ function AssetCard({ asset }) {
         <label className="block text-sm font-medium mb-1">Amount to Borrow</label>
         <input
           type="number"
-          placeholder="e.g. 100"
+          placeholder="e.g. 1.5 DAI"
           value={borrowAmount}
           onChange={(e) => setBorrowAmount(e.target.value)}
           className="w-full p-2 border border-blue-200 rounded-md"
         />
       </div>
 
-      {/* Buttons */}
       <div className="flex gap-2">
         <button
           onClick={approveAsset}
@@ -271,7 +189,6 @@ function AssetCard({ asset }) {
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="bg-red-100 text-red-700 p-2 rounded text-sm">
           ⚠ {error}
