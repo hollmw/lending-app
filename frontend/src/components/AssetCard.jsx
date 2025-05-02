@@ -110,8 +110,25 @@ function AssetCard({ asset }) {
 
       const valuationRes = await fetch(`http://localhost:8080/api/valuation/${tokenId}`);
       const { valuationWei, signature, oracleSignerAddress } = await valuationRes.json();
+      //console.log("Oracle response:", { valuationWei, signature, oracleSignerAddress }); // <- See what you're getting
 
+      const maxAllowed = ethers.BigNumber.from(valuationWei).mul(70).div(100);
+      console.log("🔍 Oracle response:", {
+        valuationWei,
+        amountWei: amountWei.toString(),
+        maxAllowed: (BigInt(valuationWei) * 70n) / 100n,
+        signer: oracleSignerAddress,
+      });
 
+      if (amountWei.gt(maxAllowed)) {
+        alert(`Amount exceeds allowed limit: Max borrow is ${ethers.utils.formatEther(maxAllowed)} DAI`);
+        setIsBorrowing(false);
+        return;
+      }//save gas
+
+      if (!signature || typeof signature !== 'string') {
+        throw new Error('Invalid oracle signature from server');
+      }
       const signatureBytes = ethers.utils.arrayify(signature);
       const gasEstimate = await lendingPoolContract.estimateGas.borrow(
         tokenId,
@@ -152,7 +169,7 @@ function AssetCard({ asset }) {
       {asset.valuationUSD && (
         <>
           <p><strong>Valuation:</strong> ${asset.valuationUSD.toLocaleString()} USD</p>
-          <p><strong>Max Borrowable (60% LTV):</strong> ${(asset.valuationUSD * 0.6).toLocaleString()} DAI</p>
+          <p><strong>Max Borrowable (70% LTV):</strong> ${(asset.valuationUSD * 0.6).toLocaleString()} DAI</p>
         </>
       )}
 
@@ -160,7 +177,7 @@ function AssetCard({ asset }) {
         <label className="block text-sm font-medium mb-1">Amount to Borrow</label>
         <input
           type="number"
-          placeholder="e.g. 1.5 DAI"
+          placeholder="70% LTV"
           value={borrowAmount}
           onChange={(e) => setBorrowAmount(e.target.value)}
           className="w-full p-2 border border-blue-200 rounded-md"

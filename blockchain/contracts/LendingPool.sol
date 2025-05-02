@@ -14,7 +14,7 @@ contract LendingPool is ReentrancyGuard {
 
 
     uint256 public interestRate = 500; // 5% interest (500 basis points)
-    uint256 public constant MAX_LOAN_AMOUNT = 1000 * 10 ** 18;
+    uint256 public constant MAX_LOAN_AMOUNT = 10000 * 10 ** 18;
     
     struct Loan {
         uint256 loanId;
@@ -30,6 +30,8 @@ contract LendingPool is ReentrancyGuard {
     mapping(address => uint256[]) public userLoans;
 
     uint256 public loanIdCounter = 1;
+
+    event ValuationUsed(uint256 tokenId, uint256 valuation, uint256 maxBorrow);
 
     event LoanCreated(uint256 loanId, uint256 tokenId, uint256 amount);
     event LoanRepaid(uint256 loanId, uint256 amount);
@@ -78,8 +80,10 @@ contract LendingPool is ReentrancyGuard {
         require(!usedMessages[uint256(ethSignedMessageHash)], "Message already used");
         usedMessages[uint256(ethSignedMessageHash)] = true;
 
-        // Max borrow = 60% of valuation
-        require(amount <= (valuation * 60) / 100, "Exceeds max borrowable");
+        uint256 maxBorrow = (valuation * 70) / 100; // 70% LTV
+        emit ValuationUsed(tokenId, valuation, maxBorrow);
+
+        require(amount <= maxBorrow, "Exceeds max borrowable");
 
         // Continue with NFT transfer and stablecoin payout...
         // Same logic as existing `borrow()`, reuse shared logic if possible
@@ -97,8 +101,7 @@ contract LendingPool is ReentrancyGuard {
             "Invalid oracle signature"
         );
 
-    uint256 maxBorrow = (valuation * 50) / 100; // 50% LTV
-    require(amount <= maxBorrow, "Amount exceeds max borrow");
+
 
         
         // Debug information
@@ -215,5 +218,10 @@ contract LendingPool is ReentrancyGuard {
         bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(messageHash);
         return ECDSA.recover(ethSignedMessageHash, signature) == oracleSigner;
     }
+
+    function getOracleSigner() public view returns (address) {
+        return oracleSigner;
+    }
+
 
 }

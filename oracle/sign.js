@@ -29,7 +29,7 @@ app.get("/api/valuation/:tokenId", async (req, res) => {
     res.json({
       valuationWei,
       signature,
-      oracleAddress: wallet.address,
+      oracleSignerAddress: wallet.address,
     });
   } catch (err) {
     console.error("Signing failed:", err);

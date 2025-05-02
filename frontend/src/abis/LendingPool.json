@@ -117,6 +117,31 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "valuation",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "maxBorrow",
+          "type": "uint256"
+        }
+      ],
+      "name": "ValuationUsed",
+      "type": "event"
+    },
+    {
       "inputs": [],
       "name": "MAX_LOAN_AMOUNT",
       "outputs": [
@@ -211,6 +236,19 @@
       "name": "borrowWithSignature",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getOracleSigner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
