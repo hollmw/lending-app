@@ -27,7 +27,7 @@ contract AssetToken is ERC721Enumerable, Ownable {
         return tokenURIs[tokenId];
     }
 
-    function getName(uint256 tokenId) external view returns (string memory) {
+    function getName(uint256 tokenId) public view returns (string memory) {
         require(_exists(tokenId), "Query for nonexistent token");
         return assetNames[tokenId];
     }
