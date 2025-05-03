@@ -161,20 +161,24 @@ function AssetCard({ asset }) {
   return (
     <div className="border rounded-xl p-6 shadow-lg bg-fti-light text-fti-blue space-y-4">
       <h3 className="text-2xl font-semibold">Asset #{asset.tokenId}</h3>
-      <h3 className="text-2xl font-semibold">Name:{asset.getName}</h3>
-
+  
+      {/* Extract and display asset name from tokenURI */}
+      <h3 className="text-xl font-semibold">
+        Name: {asset.tokenURI?.match(/Asset: (.*?),/)?.[1] || "Unknown"}
+      </h3>
+  
+      {/* Display DAI valuation from tokenURI if found */}
       <p className="text-sm text-gray-600">
-        🔗 Token URI: <span className="break-all">{asset.tokenURI}</span>
+        💰 {asset.tokenURI?.match(/Valuation: (.*) DAI/)?.[0] || asset.tokenURI}
       </p>
-      
-
+  
       {asset.valuationUSD && (
         <>
-          <p><strong>Valuation:</strong> ${asset.valuationUSD.toLocaleString()} USD</p>
-          <p><strong>Max Borrowable (70% LTV):</strong> ${(asset.valuationUSD * 0.6).toLocaleString()} DAI</p>
+          <p><strong>Valuation:</strong> {asset.valuationUSD.toLocaleString()} DAI</p>
+          <p><strong>Max Borrowable (70% LTV):</strong> {(asset.valuationUSD * 0.7).toLocaleString()} DAI</p>
         </>
       )}
-
+  
       <div className="mt-2">
         <label className="block text-sm font-medium mb-1">Amount to Borrow</label>
         <input
@@ -185,7 +189,7 @@ function AssetCard({ asset }) {
           className="w-full p-2 border border-blue-200 rounded-md"
         />
       </div>
-
+  
       <div className="flex gap-2">
         <button
           onClick={approveAsset}
@@ -196,7 +200,7 @@ function AssetCard({ asset }) {
         >
           {isApproving ? 'Approving...' : isApproved ? 'Approved ✅' : 'Approve'}
         </button>
-
+  
         <button
           onClick={borrowAgainstAsset}
           disabled={isBorrowing || !isApproved}
@@ -207,7 +211,7 @@ function AssetCard({ asset }) {
           {isBorrowing ? 'Borrowing...' : 'Borrow'}
         </button>
       </div>
-
+  
       {error && (
         <div className="bg-red-100 text-red-700 p-2 rounded text-sm">
           ⚠ {error}
