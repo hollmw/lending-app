@@ -13,44 +13,10 @@ function AssetCard({ asset }) {
   const [isApproved, setIsApproved] = useState(false);
   const [error, setError] = useState(null);
 
-  // On-chain fetch of asset name
-  const [assetName, setAssetName] = useState('');
-  useEffect(() => {
-    if (!signer) return;
-    const fetchName = async () => {
-      try {
-        const contract = new ethers.Contract(
-          assetTokenAddress,
-          AssetTokenABI.abi,
-          signer
-        );
-        const name = await contract.getName(asset.tokenId);
-        setAssetName(name);
-      } catch (e) {
-        console.error('Error fetching asset name:', e);
-      }
-    };
-    fetchName();
-  }, [signer, asset.tokenId]);
-
-  // Extract and format valuation from tokenURI (in Wei) to DAI
-  const [valuationDAI, setValuationDAI] = useState(null);
-  useEffect(() => {
-    const parseValuation = () => {
-      const match = asset.tokenURI?.match(/Valuation:\s*(\d+)/);
-      if (match) {
-        try {
-          const weiBN = ethers.BigNumber.from(match[1]);
-          setValuationDAI(ethers.utils.formatEther(weiBN));
-        } catch (e) {
-          console.error('Valuation parsing error:', e);
-        }
-      }
-    };
-    parseValuation();
-  }, [asset.tokenURI]);
-
-  const maxBorrowable = valuationDAI ? (parseFloat(valuationDAI) * 0.7).toFixed(2) : '0.00';
+  const assetName = asset.tokenURI?.match(/Asset: (.*?),/)?.[1] || "Unknown";
+  const rawValuation = asset.tokenURI
+  const daiValuation = rawValuation ? ethers.utils.formatEther(rawValuation) : "0.0";
+  const maxBorrowable = parseFloat(daiValuation) * 0.7;
 
   useEffect(() => {
     if (!connected || !account || !signer) return;
@@ -93,6 +59,7 @@ function AssetCard({ asset }) {
         AssetTokenABI.abi,
         signer
       );
+
       const tx = await assetTokenContract.approve(lendingPoolAddress, asset.tokenId);
       await tx.wait();
       setIsApproved(true);
@@ -111,7 +78,7 @@ function AssetCard({ asset }) {
     }
 
     if (!borrowAmount || isNaN(borrowAmount)) {
-      setError('Please enter a valid amount in DAI');
+      setError('Please enter a valid amount');
       return;
     }
 
@@ -119,16 +86,8 @@ function AssetCard({ asset }) {
       setIsBorrowing(true);
       setError(null);
 
-      const assetTokenContract = new ethers.Contract(
-        assetTokenAddress,
-        AssetTokenABI.abi,
-        signer
-      );
-      const lendingPoolContract = new ethers.Contract(
-        lendingPoolAddress,
-        LendingPoolABI.abi,
-        signer
-      );
+      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
+      const lendingPoolContract = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
       const tokenId = asset.tokenId;
 
       const owner = await assetTokenContract.ownerOf(tokenId);
@@ -141,7 +100,12 @@ function AssetCard({ asset }) {
         throw new Error('NFT is already collateralized');
       }
 
-      if (!isApproved) {
+      const [approvedAddress, isApprovedForAll] = await Promise.all([
+        assetTokenContract.getApproved(tokenId),
+        assetTokenContract.isApprovedForAll(account, lendingPoolAddress),
+      ]);
+      const stillApproved = approvedAddress === lendingPoolAddress || isApprovedForAll;
+      if (!stillApproved) {
         const approveTx = await assetTokenContract.approve(lendingPoolAddress, tokenId);
         await approveTx.wait();
       }
@@ -149,8 +113,8 @@ function AssetCard({ asset }) {
       const amountWei = ethers.utils.parseEther(borrowAmount);
       if (amountWei.lte(0)) throw new Error('Invalid borrow amount');
 
-      const valuationRes = await fetch(`http://localhost:8080/api/valuation/${tokenId}`);
-      const { valuationWei, signature } = await valuationRes.json();
+      const valuationRes = await fetch(`http://localhost:8080/api/valuation?description=${assetName}`);
+      const { valuationWei, signature, oracleSignerAddress } = await valuationRes.json();
 
       const maxAllowed = ethers.BigNumber.from(valuationWei).mul(70).div(100);
       if (amountWei.gt(maxAllowed)) {
@@ -191,18 +155,18 @@ function AssetCard({ asset }) {
   return (
     <div className="border rounded-xl p-6 shadow-lg bg-fti-light text-fti-blue space-y-4">
       <h3 className="text-2xl font-semibold">Asset #{asset.tokenId}</h3>
-      <h3 className="text-xl font-semibold">Name: {assetName || 'Loading...'}</h3>
+      <h3 className="text-xl font-semibold">Name: {assetName}</h3>
 
       <p className="text-sm text-gray-600">
-        💰 Valuation: {valuationDAI ? `${valuationDAI} DAI` : 'N/A'}
+        💰 Valuation: {daiValuation} DAI
       </p>
-      <p><strong>Max Borrowable (70% LTV):</strong> {maxBorrowable} DAI</p>
+      <p><strong>Max Borrowable (70% LTV):</strong> {maxBorrowable.toLocaleString()} DAI</p>
 
       <div className="mt-2">
-        <label className="block text-sm font-medium mb-1">Amount to Borrow (DAI)</label>
+        <label className="block text-sm font-medium mb-1">Amount to Borrow</label>
         <input
           type="number"
-          placeholder="Enter amount in DAI"
+          placeholder="70% LTV"
           value={borrowAmount}
           onChange={(e) => setBorrowAmount(e.target.value)}
           className="w-full p-2 border border-blue-200 rounded-md"
@@ -213,7 +177,9 @@ function AssetCard({ asset }) {
         <button
           onClick={approveAsset}
           disabled={isApproving || isApproved}
-          className={`flex-1 px-4 py-2 rounded text-white ${isApproved ? 'bg-green-500' : 'bg-blue-500 hover:bg-blue-600'} ${isApproving ? 'opacity-50' : ''}`}
+          className={`flex-1 px-4 py-2 rounded text-white ${
+            isApproved ? 'bg-green-500' : 'bg-blue-500 hover:bg-blue-600'
+          } ${isApproving ? 'opacity-50' : ''}`}
         >
           {isApproving ? 'Approving...' : isApproved ? 'Approved ✅' : 'Approve'}
         </button>
@@ -221,7 +187,9 @@ function AssetCard({ asset }) {
         <button
           onClick={borrowAgainstAsset}
           disabled={isBorrowing || !isApproved}
-          className={`flex-1 px-4 py-2 rounded text-white ${isBorrowing ? 'bg-gray-400' : 'bg-purple-500 hover:bg-purple-600'} ${!isApproved ? 'opacity-50' : ''}`}
+          className={`flex-1 px-4 py-2 rounded text-white ${
+            isBorrowing ? 'bg-gray-400' : 'bg-purple-500 hover:bg-purple-600'
+          } ${!isApproved ? 'opacity-50' : ''}`}
         >
           {isBorrowing ? 'Borrowing...' : 'Borrow'}
         </button>
