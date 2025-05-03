@@ -40,11 +40,7 @@ cd oracle
 npm run start
 ```
 
-# Run Tests
+# Run Tests (from root)
 ```bash
-cd oracle
-npm run test
-
-cd ../blockchain
 npm run test
 ```
