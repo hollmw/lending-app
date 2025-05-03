@@ -1,0 +1,17 @@
+{
+  "name": "lending-app",
+  "private": true,
+  "scripts": {
+    "test:blockchain": "npm --prefix blockchain test",
+    "test:oracle":     "npm --prefix oracle   test",
+    "test":            "npm run test:blockchain && npm run test:oracle"
+  },
+  "type": "module",
+
+  "devDependencies": {
+    "chai": "^5.2.0",
+    "mocha": "^11.2.2",
+    "supertest": "^7.1.0"
+  }
+  
+}

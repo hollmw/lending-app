@@ -3,15 +3,21 @@
   "version": "1.0.0",
   "main": "sign.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node sign.js",
+    "test": "mocha test/*.test.js --timeout 5000"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "cors": "^2.8.5",
     "ethers": "^5.8.0",
     "express": "^5.1.0"
-  }
+  },
+  "devDependencies": {
+    "chai": "4.3.7",
+    "mocha": "^11.2.2",
+    "supertest": "^7.1.0"
+  },
+  "description": ""
 }

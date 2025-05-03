@@ -1,0 +1,87 @@
+/**
+ * This test starts your off-chain oracle server, deploys AssetToken, MockDAI, and 
+ * LendingPool (funding it and setting the oracle), mints an NFT to Alice, fetches a 
+ * signed valuation via HTTP, and then has Alice approve the NFT and call borrow(...), 
+ * asserting the LoanCreated event and that the pool holds the NFT while Alice receives the correct DAI.
+ */
+
+
+
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+const axios = require("axios");
+const app = require("../../oracle/sign");  // adjust path if needed
+
+describe("Oracle ↔ LendingPool Integration", function () {
+  let server, oracleUrl;
+  let assetToken, stablecoin, pool;
+  let oracleSigner, alice;
+
+  before(async function () {
+    // spin up the oracle server on a random free port
+    server = app.listen(0);
+    const port = server.address().port;
+    oracleUrl = `http://127.0.0.1:${port}/api/valuation`;
+  });
+
+  after(async function () {
+    await server.close();
+  });
+
+  beforeEach(async function () {
+    // NOTE: we take the *first* signer here as our oracle account
+    [oracleSigner, alice] = await ethers.getSigners();
+
+    // deploy AssetToken
+    const AT = await ethers.getContractFactory("AssetToken");
+    assetToken = await AT.deploy();
+    await assetToken.waitForDeployment();
+
+    // deploy MockDAI
+    const MD = await ethers.getContractFactory("MockDAI");
+    stablecoin = await MD.deploy();
+    await stablecoin.waitForDeployment();
+
+    // deploy LendingPool
+    const LP = await ethers.getContractFactory("LendingPool");
+    pool = await LP.deploy(assetToken.target, stablecoin.target);
+    await pool.waitForDeployment();
+
+    // wire up the same oracleSigner on-chain and fund the pool
+    await pool.setOracle(oracleSigner.address);
+    await pool.setOracleSigner(oracleSigner.address);
+    await stablecoin.mint(pool.target, ethers.parseEther("10000"));
+
+    // mint NFT #1 to Alice
+    await assetToken.mint(alice.address, "IntegrationAsset", "uri://1");
+  });
+
+  it("fetches a signed valuation and then borrows on-chain", async function () {
+    const tokenId = 1n;
+
+    // 1) call the oracle HTTP API
+    const res = await axios.get(`${oracleUrl}/${tokenId}`);
+    expect(res.status).to.equal(200);
+
+    const { valuationWei, signature, oracleSignerAddress } = res.data;
+    // now it should match our first-signer address
+    expect(oracleSignerAddress).to.equal(oracleSigner.address);
+
+    // 2) Alice approves her NFT
+    await assetToken.connect(alice).approve(pool.target, tokenId);
+
+    // 3) Invoke borrow() on-chain
+    const val       = BigInt(valuationWei);
+    const borrowAmt = (val * 70n) / 100n;
+
+    await expect(
+      pool.connect(alice).borrow(tokenId, borrowAmt, valuationWei, signature)
+    )
+      .to.emit(pool, "LoanCreated")
+      .withArgs(2n, tokenId, borrowAmt);
+
+    // 4) Assert that the NFT is in the pool and Alice got DAI
+    expect(await assetToken.ownerOf(tokenId)).to.equal(pool.target);
+    expect(await stablecoin.balanceOf(alice.address)).to.equal(borrowAmt);
+  });
+});
