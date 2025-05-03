@@ -161,10 +161,12 @@ function AssetCard({ asset }) {
   return (
     <div className="border rounded-xl p-6 shadow-lg bg-fti-light text-fti-blue space-y-4">
       <h3 className="text-2xl font-semibold">Asset #{asset.tokenId}</h3>
+      <h3 className="text-2xl font-semibold">Name:{asset.getName}</h3>
 
       <p className="text-sm text-gray-600">
         🔗 Token URI: <span className="break-all">{asset.tokenURI}</span>
       </p>
+      
 
       {asset.valuationUSD && (
         <>

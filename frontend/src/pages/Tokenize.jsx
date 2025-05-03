@@ -14,43 +14,38 @@ function Tokenize() {
 
   const lookupAsset = async () => {
     try {
-      const tokenId = assetName.trim(); // assetName used as tokenId (e.g., "1")
-      const res = await axios.get(`/api/valuation/${tokenId}`);
+      const res = await axios.post('/api/valuation', { description: assetName });
   
       setValuation({
-        usd: parseFloat(ethers.utils.formatEther(res.data.valuationWei)),
-        signature: res.data.signature
+        dai: parseFloat(ethers.utils.formatEther(res.data.valuationWei)),
+        valuationWei: res.data.valuationWei,
+        signature: res.data.signature,
       });
     } catch (error) {
       console.error('Oracle lookup error', error);
       alert('Error fetching asset valuation.');
     }
   };
+
   const mintAsset = async () => {
-    if (!valuation) {
-      alert('Please lookup asset first.');
+    if (!valuation || !connected || !signer) {
+      alert('Connect wallet and lookup valuation first.');
       return;
     }
-    if (!connected) {
-      alert('Please connect your wallet first.');
-      return;
-    }
+
     try {
       setMinting(true);
+      const contract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
+      const userAddress = await signer.getAddress();
 
-      const assetTokenContract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
-
-      const userWallet = await signer.getAddress();
-      const tokenURI = `Asset: ${assetName}, Valuation: $${valuation.usd}`;
-
-      const tx = await assetTokenContract.mint(userWallet, tokenURI);
+      const tx = await contract.mint(userAddress, assetName, valuation.valuationWei);
       await tx.wait();
 
       alert('NFT minted successfully!');
       window.location.reload();
-    } catch (error) {
-      console.error('Error minting asset', error);
-      alert('Error minting asset: ' + (error.reason || error.message));
+    } catch (err) {
+      console.error('Mint error:', err);
+      alert('Mint failed: ' + (err.reason || err.message));
     } finally {
       setMinting(false);
     }
@@ -64,7 +59,7 @@ function Tokenize() {
 
         <input
           type="text"
-          placeholder="Enter asset tokenId (e.g., 1)"
+          placeholder="Enter asset name/description"
           value={assetName}
           onChange={(e) => setAssetName(e.target.value)}
           className="border p-2 rounded w-64"
@@ -79,7 +74,7 @@ function Tokenize() {
 
         {valuation && (
           <div className="text-center">
-            <p>Asset Valuation: <strong>${valuation.usd}</strong> USD</p>
+            <p>Asset Valuation: <strong>{valuation.dai}</strong> DAI</p>
             <button
               onClick={mintAsset}
               disabled={minting}
