@@ -13,7 +13,6 @@ function AssetCard({ asset }) {
   const [isApproved, setIsApproved] = useState(false);
   const [error, setError] = useState(null);
 
-  const assetName = asset.tokenURI?.match(/Asset: (.*?),/)?.[1] || "Unknown";
   const rawValuation = asset.tokenURI
   const daiValuation = rawValuation ? ethers.utils.formatEther(rawValuation) : "0.0";
   const maxBorrowable = parseFloat(daiValuation) * 0.7;
@@ -113,7 +112,7 @@ function AssetCard({ asset }) {
       const amountWei = ethers.utils.parseEther(borrowAmount);
       if (amountWei.lte(0)) throw new Error('Invalid borrow amount');
 
-      const valuationRes = await fetch(`http://localhost:8080/api/valuation?description=${assetName}`);
+      const valuationRes = await fetch(`http://localhost:8080/api/valuation/${tokenId}`);
       const { valuationWei, signature, oracleSignerAddress } = await valuationRes.json();
 
       const maxAllowed = ethers.BigNumber.from(valuationWei).mul(70).div(100);
@@ -155,7 +154,7 @@ function AssetCard({ asset }) {
   return (
     <div className="border rounded-xl p-6 shadow-lg bg-fti-light text-fti-blue space-y-4">
       <h3 className="text-2xl font-semibold">Asset #{asset.tokenId}</h3>
-      <h3 className="text-xl font-semibold">Name: {assetName}</h3>
+      <h3 className="text-xl font-semibold">Name: </h3>
 
       <p className="text-sm text-gray-600">
         💰 Valuation: {daiValuation} DAI
