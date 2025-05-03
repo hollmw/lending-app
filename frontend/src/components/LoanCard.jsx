@@ -14,11 +14,9 @@ function LoanCard({ loan }) {
       const dai = new ethers.Contract(mockDaiAddress, MockDAIABI.abi, signer);
       const lendingPool = new ethers.Contract(lendingPoolAddress, LendingPoolABI.abi, signer);
 
-      // Load full loan info (in case it's stale)
       const onChainLoan = await lendingPool.loans(loanId);
       const totalDue = onChainLoan.amount.add(onChainLoan.interestDue);
 
-      // Check allowance
       const userAddress = await signer.getAddress();
       const allowance = await dai.allowance(userAddress, lendingPoolAddress);
 

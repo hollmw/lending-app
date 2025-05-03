@@ -6,13 +6,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";//hardcoded but is ok
 const wallet = new ethers.Wallet(PRIVATE_KEY);
 
-// helper to get a random integer between min and max (inclusive)
 function getRandomDai(min = 1000, max = 5000) {
   const rand = Math.floor(Math.random() * (max - min + 1)) + min;
-  return rand.toString(); // return as string for parseEther
+  return rand.toString();
 }
 
 app.get("/api/valuation/:tokenId", async (req, res) => {
@@ -22,7 +21,6 @@ app.get("/api/valuation/:tokenId", async (req, res) => {
       return res.status(400).json({ error: "Invalid tokenId" });
     }
 
-    // pick a random valuation between 1000 and 5000 DAI
     const randomDai = getRandomDai();
     const valuationWei = ethers.utils.parseEther(randomDai).toString();
 
@@ -52,7 +50,6 @@ app.post("/api/valuation", async (req, res) => {
     return res.status(400).json({ error: "Missing asset description" });
   }
 
-  // pick a random valuation between 1000 and 5000 DAI
   const randomDai = getRandomDai();
 
   const valuationWei = ethers.utils.parseEther(randomDai).toString();

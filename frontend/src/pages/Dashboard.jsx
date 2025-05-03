@@ -25,7 +25,7 @@ function Dashboard() {
       const daiContract = new ethers.Contract(
         mockDaiAddress,
         MockDAIABI.abi,
-        signer || provider // fallback for read-only if signer isn't present
+        signer || provider 
       );
 
       const rawBalance = await daiContract.balanceOf(account);

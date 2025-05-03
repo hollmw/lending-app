@@ -52,7 +52,7 @@ function MyAssets() {
     if (connected) {
       fetchAssets();
     }
-  }, [connected, walletAddress]); // ✅ Depend on connected + walletAddress
+  }, [connected, walletAddress]);
 
   return (
     <div className="p-6">
