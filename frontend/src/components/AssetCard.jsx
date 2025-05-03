@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { useWallet } from '../hooks/useWallet';
 import AssetTokenABI from '../abis/AssetToken.json';
 import LendingPoolABI from '../abis/LendingPool.json';
-import { assetTokenAddress, lendingPoolAddress , oracleSignerAddress } from '../addresses';
+import { assetTokenAddress, lendingPoolAddress } from '../addresses';
 
 function AssetCard({ asset }) {
   const { signer, account, connected, connect } = useWallet();
@@ -12,6 +12,11 @@ function AssetCard({ asset }) {
   const [isApproving, setIsApproving] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [error, setError] = useState(null);
+
+  const assetName = asset.tokenURI?.match(/Asset: (.*?),/)?.[1] || "Unknown";
+  const rawValuation = asset.tokenURI
+  const daiValuation = rawValuation ? ethers.utils.formatEther(rawValuation) : "0.0";
+  const maxBorrowable = parseFloat(daiValuation) * 0.7;
 
   useEffect(() => {
     if (!connected || !account || !signer) return;
@@ -108,27 +113,16 @@ function AssetCard({ asset }) {
       const amountWei = ethers.utils.parseEther(borrowAmount);
       if (amountWei.lte(0)) throw new Error('Invalid borrow amount');
 
-      const valuationRes = await fetch(`http://localhost:8080/api/valuation/${tokenId}`);
+      const valuationRes = await fetch(`http://localhost:8080/api/valuation?description=${assetName}`);
       const { valuationWei, signature, oracleSignerAddress } = await valuationRes.json();
-      //console.log("Oracle response:", { valuationWei, signature, oracleSignerAddress }); // <- See what you're getting
 
       const maxAllowed = ethers.BigNumber.from(valuationWei).mul(70).div(100);
-      console.log("🔍 Oracle response:", {
-        valuationWei,
-        amountWei: amountWei.toString(),
-        maxAllowed: (BigInt(valuationWei) * 70n) / 100n,
-        signer: oracleSignerAddress,
-      });
-
       if (amountWei.gt(maxAllowed)) {
         alert(`Amount exceeds allowed limit: Max borrow is ${ethers.utils.formatEther(maxAllowed)} DAI`);
         setIsBorrowing(false);
         return;
-      }//save gas
-
-      if (!signature || typeof signature !== 'string') {
-        throw new Error('Invalid oracle signature from server');
       }
+
       const signatureBytes = ethers.utils.arrayify(signature);
       const gasEstimate = await lendingPoolContract.estimateGas.borrow(
         tokenId,
@@ -161,24 +155,13 @@ function AssetCard({ asset }) {
   return (
     <div className="border rounded-xl p-6 shadow-lg bg-fti-light text-fti-blue space-y-4">
       <h3 className="text-2xl font-semibold">Asset #{asset.tokenId}</h3>
-  
-      {/* Extract and display asset name from tokenURI */}
-      <h3 className="text-xl font-semibold">
-        Name: {asset.tokenURI?.match(/Asset: (.*?),/)?.[1] || "Unknown"}
-      </h3>
-  
-      {/* Display DAI valuation from tokenURI if found */}
+      <h3 className="text-xl font-semibold">Name: {assetName}</h3>
+
       <p className="text-sm text-gray-600">
-        💰 {asset.tokenURI?.match(/Valuation: (.*) DAI/)?.[0] || asset.tokenURI}
+        💰 Valuation: {daiValuation} DAI
       </p>
-  
-      {asset.valuationUSD && (
-        <>
-          <p><strong>Valuation:</strong> {asset.valuationUSD.toLocaleString()} DAI</p>
-          <p><strong>Max Borrowable (70% LTV):</strong> {(asset.valuationUSD * 0.7).toLocaleString()} DAI</p>
-        </>
-      )}
-  
+      <p><strong>Max Borrowable (70% LTV):</strong> {maxBorrowable.toLocaleString()} DAI</p>
+
       <div className="mt-2">
         <label className="block text-sm font-medium mb-1">Amount to Borrow</label>
         <input
@@ -189,7 +172,7 @@ function AssetCard({ asset }) {
           className="w-full p-2 border border-blue-200 rounded-md"
         />
       </div>
-  
+
       <div className="flex gap-2">
         <button
           onClick={approveAsset}
@@ -200,7 +183,7 @@ function AssetCard({ asset }) {
         >
           {isApproving ? 'Approving...' : isApproved ? 'Approved ✅' : 'Approve'}
         </button>
-  
+
         <button
           onClick={borrowAgainstAsset}
           disabled={isBorrowing || !isApproved}
@@ -211,7 +194,7 @@ function AssetCard({ asset }) {
           {isBorrowing ? 'Borrowing...' : 'Borrow'}
         </button>
       </div>
-  
+
       {error && (
         <div className="bg-red-100 text-red-700 p-2 rounded text-sm">
           ⚠ {error}

@@ -53,7 +53,6 @@ app.post("/api/valuation", async (req, res) => {
   }
 
   // pick a random valuation between 1000 and 5000 DAI
-  const randomDai = getRandomDai();
   const valuationWei = ethers.utils.parseEther(randomDai).toString();
 
   try {
