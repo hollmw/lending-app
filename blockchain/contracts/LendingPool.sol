@@ -85,8 +85,6 @@ contract LendingPool is ReentrancyGuard {
 
         require(amount <= maxBorrow, "Exceeds max borrowable");
 
-        // Continue with NFT transfer and stablecoin payout...
-        // Same logic as existing `borrow()`, reuse shared logic if possible
     }
 
 
@@ -207,7 +205,7 @@ contract LendingPool is ReentrancyGuard {
     }
 
 
-    //oracle stuff
+    // Oracle stuff
     function verifyValuationSignature(
         uint256 tokenId,
         uint256 valuation,

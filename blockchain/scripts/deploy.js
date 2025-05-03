@@ -36,7 +36,7 @@ async function main() {
   await oracleTx.wait();
   console.log('Oracle signer set to deployer:', deployer.address);
 
-  // === Save addresses to frontend/src/addresses.js ===
+  // Save addresses to frontend/src/addresses.js
   const addresses = `
     export const assetTokenAddress = "${assetTokenAddress}";
     export const mockDaiAddress = "${mockDaiAddress}";

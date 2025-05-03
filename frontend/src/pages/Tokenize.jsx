@@ -53,7 +53,7 @@ function Tokenize() {
 
   return (
     <>
-      
+      <Nav></Nav>
       <div className="flex flex-col items-center space-y-4 p-8 bg-fti-light min-h-screen">
         <h2 className="text-2xl font-bold text-fti-blue">Tokenize Asset</h2>
 

@@ -1,12 +1,8 @@
 package com.defi.controller;
 
-import com.defi.service.OracleService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.defi.util.CryptoUtil;
-import org.springframework.web.bind.annotation.*;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 

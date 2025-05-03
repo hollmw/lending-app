@@ -37,7 +37,6 @@ function Dashboard() {
     }
   };
 
-  // ✅ Add 10 DAI
   const addDai = async () => {
     if (!connected || !signer) return;
     try {
