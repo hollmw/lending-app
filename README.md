@@ -44,3 +44,27 @@ npm run start
 ```bash
 npm run test
 ```
+
+
+# Files that matter:
+Blockchain folder:
+- Contracts
+- Scripts
+- Tests
+- Package.json
+
+Frontend Folder:
+- Pages
+- Hooks
+- Components
+- Abis
+- addresses.js
+- package.json
+- Services
+
+Oracle Folder:
+- test
+- package.json
+- sign.js
+
+Backend Folder - old code not removed
