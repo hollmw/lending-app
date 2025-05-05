@@ -7,15 +7,18 @@ import Nav from '../components/Nav';
 import { assetTokenAddress } from '../addresses';
 
 function Tokenize() {
-  const { signer, connected } = useWallet();
-  const [assetName, setAssetName] = useState('');
-  const [valuation, setValuation] = useState(null);
-  const [minting, setMinting] = useState(false);
+  const { signer, connected } = useWallet(); // @dev Access wallet connection and signer
+  const [assetName, setAssetName] = useState('');           // @dev Stores user input (asset description)
+  const [valuation, setValuation] = useState(null);         // @dev Stores valuation result from oracle
+  const [minting, setMinting] = useState(false);            // @dev Tracks minting state for UI feedback
 
+  /**
+   * @dev Calls the backend oracle to get a signed asset valuation
+   */
   const lookupAsset = async () => {
     try {
       const res = await axios.post('/api/valuation', { description: assetName });
-  
+
       setValuation({
         dai: parseFloat(ethers.utils.formatEther(res.data.valuationWei)),
         valuationWei: res.data.valuationWei,
@@ -27,6 +30,9 @@ function Tokenize() {
     }
   };
 
+  /**
+   * @dev Mints a new NFT with the given name and valuation
+   */
   const mintAsset = async () => {
     if (!valuation || !connected || !signer) {
       alert('Connect wallet and lookup valuation first.');
@@ -35,6 +41,7 @@ function Tokenize() {
 
     try {
       setMinting(true);
+
       const contract = new ethers.Contract(assetTokenAddress, AssetTokenABI.abi, signer);
       const userAddress = await signer.getAddress();
 
@@ -42,7 +49,7 @@ function Tokenize() {
       await tx.wait();
 
       alert('NFT minted successfully!');
-      window.location.reload();
+      window.location.reload(); // @dev Simple reset after mint
     } catch (err) {
       console.error('Mint error:', err);
       alert('Mint failed: ' + (err.reason || err.message));
@@ -53,10 +60,11 @@ function Tokenize() {
 
   return (
     <>
-      <Nav></Nav>
+      <Nav />
       <div className="flex flex-col items-center space-y-4 p-8 bg-fti-light min-h-screen">
         <h2 className="text-2xl font-bold text-fti-blue">Tokenize Asset</h2>
 
+        {/* @dev Input field for asset name/description */}
         <input
           type="text"
           placeholder="Enter asset name/description"
@@ -65,6 +73,7 @@ function Tokenize() {
           className="border p-2 rounded w-64"
         />
 
+        {/* @dev Button to request valuation from oracle */}
         <button
           onClick={lookupAsset}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -72,6 +81,7 @@ function Tokenize() {
           Lookup Valuation
         </button>
 
+        {/* @dev Show valuation and mint button once valuation is available */}
         {valuation && (
           <div className="text-center">
             <p>Asset Valuation: <strong>{valuation.dai}</strong> DAI</p>

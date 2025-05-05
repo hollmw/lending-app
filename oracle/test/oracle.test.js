@@ -3,10 +3,8 @@ const request = require("supertest");
 const { expect } = require("chai");
 const { ethers } = require("ethers");
 
-// 1) Require the exported Express app
 const app = require("../sign");
 
-// 2) Wrap it in supertest
 const server = request(app);
 
 describe("Oracle API", function() {
@@ -21,7 +19,6 @@ describe("Oracle API", function() {
       "randomDai"
     ]);
 
-    // verify the signature
     const { valuationWei, signature, oracleSignerAddress } = res.body;
     const hash = ethers.utils.solidityKeccak256(
       ["uint256", "uint256"],
